@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String @id @default(cuid())
+  name         String
+  email        String @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Relationships
+  polls        Poll[]
+  votes        Vote[]
+  
+  @@map("users")
+}
+
+model Poll {
+  id          String   @id @default(cuid())
+  question    String
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Foreign key
+  creatorId   String
+  
+  // Relationships
+  creator     User         @relation(fields: [creatorId], references: [id])
+  options     PollOption[]
+  
+  @@map("polls")
+}
+
+model PollOption {
+  id     String @id @default(cuid())
+  text   String
+  
+  // Foreign key
+  pollId String
+  
+  // Relationships
+  poll   Poll   @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes  Vote[]
+  
+  @@map("poll_options")
+}
+
+model Vote {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  
+  // Foreign keys
+  userId       String
+  pollOptionId String
+  
+  // Relationships
+  user       User       @relation(fields: [userId], references: [id])
+  pollOption PollOption @relation(fields: [pollOptionId], references: [id])
+  
+  // Prevent multiple votes from same user on same poll
+  @@unique([userId, pollOptionId])
+  @@map("votes")
+}
